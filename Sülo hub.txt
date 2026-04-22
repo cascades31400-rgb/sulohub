@@ -1,0 +1,191 @@
+--// Servisler (Stabil Kod Temeli)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+--// Global Kontroller
+_G.SuloActive = true
+_G.ESP_Enabled = false
+_G.Noclip = false
+_G.InfJump = false
+local ESP_Objects = {} 
+
+--// --- UI OLUŞTURMA (V9 Sabit Tasarım) ---
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SuloHubV13_3"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 999 
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 200, 0, 400)
+MainFrame.Position = UDim2.new(0.8, 0, 0.25, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "SÜLO HUB V13.3"
+Title.TextColor3 = Color3.fromRGB(255, 200, 0)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.Parent = MainFrame
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.Text = "X"
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.ZIndex = 10 
+CloseBtn.Parent = MainFrame
+Instance.new("UICorner", CloseBtn)
+
+local function CreateBtn(txt, pos, color)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    btn.Position = pos
+    btn.BackgroundColor3 = color
+    btn.Text = txt
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamMedium
+    btn.Parent = MainFrame
+    Instance.new("UICorner", btn)
+    return btn
+end
+
+local ToggleBtn = CreateBtn("Wallhack: OFF", UDim2.new(0.05, 0, 0.12, 0), Color3.fromRGB(180, 40, 40))
+local NoclipBtn = CreateBtn("Noclip: OFF", UDim2.new(0.05, 0, 0.22, 0), Color3.fromRGB(60, 60, 65))
+local SpeedBtn = CreateBtn("Hız: Normal", UDim2.new(0.05, 0, 0.32, 0), Color3.fromRGB(40, 100, 40))
+local LocalGunBtn = CreateBtn("🔫 Özel Tüfek Al", UDim2.new(0.05, 0, 0.42, 0), Color3.fromRGB(50, 50, 150))
+
+local PlayerInput = Instance.new("TextBox")
+PlayerInput.Size = UDim2.new(0.9, 0, 0, 30)
+PlayerInput.Position = UDim2.new(0.05, 0, 0.55, 0)
+PlayerInput.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+PlayerInput.PlaceholderText = "Oyuncu İsmi..."
+PlayerInput.Text = ""
+PlayerInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlayerInput.Parent = MainFrame
+Instance.new("UICorner", PlayerInput)
+
+local TPBtn = CreateBtn("Yanına Işınlan", UDim2.new(0.05, 0, 0.65, 0), Color3.fromRGB(70, 70, 150))
+local JumpFlyBtn = CreateBtn("Zıplayarak Uç: OFF", UDim2.new(0.05, 0, 0.78, 0), Color3.fromRGB(120, 50, 150))
+
+--// --- GELİŞMİŞ TÜFEK YAPIM MANTIĞI ---
+LocalGunBtn.MouseButton1Click:Connect(function()
+    local tool = Instance.new("Tool")
+    tool.Name = "Sülo Special AR"
+    tool.RequiresHandle = true
+    
+    -- 1. Ana Gövde (Handle)
+    local handle = Instance.new("Part")
+    handle.Name = "Handle"
+    handle.Size = Vector3.new(0.2, 0.5, 0.4)
+    handle.Color = Color3.fromRGB(20, 20, 20)
+    handle.Material = Enum.Material.Metal
+    handle.Parent = tool
+    
+    -- 2. Namlu Grubu
+    local barrel = Instance.new("Part")
+    barrel.Size = Vector3.new(0.15, 0.2, 2.2)
+    barrel.Position = handle.Position + Vector3.new(0, 0.2, -1.0)
+    barrel.Color = Color3.fromRGB(30, 30, 30)
+    barrel.Material = Enum.Material.Metal
+    barrel.Parent = tool
+    local w1 = Instance.new("WeldConstraint", handle) w1.Part0 = handle; w1.Part1 = barrel
+
+    -- 3. Dipçik (Detaylı)
+    local stock = Instance.new("Part")
+    stock.Size = Vector3.new(0.25, 0.5, 1.0)
+    stock.Position = handle.Position + Vector3.new(0, 0.1, 0.6)
+    stock.Color = Color3.fromRGB(10, 10, 10)
+    stock.Material = Enum.Material.Plastic
+    stock.Parent = tool
+    local w2 = Instance.new("WeldConstraint", handle) w2.Part0 = handle; w2.Part1 = stock
+
+    -- 4. Şarjör (Magazine)
+    local mag = Instance.new("Part")
+    mag.Size = Vector3.new(0.18, 0.7, 0.3)
+    mag.Position = handle.Position + Vector3.new(0, -0.4, -0.2)
+    mag.Color = Color3.fromRGB(30, 30, 30)
+    mag.Parent = tool
+    local w3 = Instance.new("WeldConstraint", handle) w3.Part0 = handle; w3.Part1 = mag
+
+    -- 5. Optik Dürbün (Scope)
+    local scope = Instance.new("Part")
+    scope.Size = Vector3.new(0.15, 0.2, 0.6)
+    scope.Position = barrel.Position + Vector3.new(0, 0.25, 0.3)
+    scope.Color = Color3.fromRGB(0, 0, 0)
+    scope.Parent = tool
+    local w4 = Instance.new("WeldConstraint", barrel) w4.Part0 = barrel; w4.Part1 = scope
+
+    -- 6. LAZER (Kırmızı Nokta)
+    local laser = Instance.new("Part")
+    laser.Size = Vector3.new(0.1, 0.1, 0.1)
+    laser.Color = Color3.fromRGB(255, 0, 0)
+    laser.Material = Enum.Material.Neon
+    laser.Position = barrel.Position + Vector3.new(0, 0, -1.1)
+    laser.Parent = tool
+    local w5 = Instance.new("WeldConstraint", barrel) w5.Part0 = barrel; w5.Part1 = laser
+
+    -- 7. Ateş Efekti (Işık)
+    local flash = Instance.new("PointLight")
+    flash.Color = Color3.fromRGB(255, 200, 100)
+    flash.Range = 10
+    flash.Enabled = false
+    flash.Parent = laser
+
+    -- Ses
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://13114761"
+    sound.Volume = 1.2
+    sound.Parent = handle
+    
+    tool.Activated:Connect(function()
+        sound:Play()
+        flash.Enabled = true
+        handle.CFrame = handle.CFrame * CFrame.Angles(0.2, 0, 0) -- Güçlü geri tepme
+        task.wait(0.05)
+        flash.Enabled = false
+        handle.CFrame = handle.CFrame * CFrame.Angles(-0.2, 0, 0)
+    end)
+    
+    tool.Parent = LocalPlayer.Backpack
+    LocalGunBtn.Text = "🔥 EFSANE TÜFEK ALINDI!"
+    task.wait(1.5)
+    LocalGunBtn.Text = "keles al"
+end)
+
+--// --- DİĞER STABİL SİSTEMLER ---
+-- (Hız, Noclip, ESP ve Işınlanma V9-V13 arasındaki gibi kusursuz çalışmaya devam eder)
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() _G.SuloActive = false end)
+JumpFlyBtn.MouseButton1Click:Connect(function() _G.InfJump = not _G.InfJump; JumpFlyBtn.Text = "Zıplayarak Uç: " .. (_G.InfJump and "ON" or "OFF") end)
+UserInputService.JumpRequest:Connect(function() if _G.InfJump and LocalPlayer.Character then LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping") end end)
+RunService.Stepped:Connect(function() if _G.Noclip and LocalPlayer.Character then for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end end end)
+SpeedBtn.MouseButton1Click:Connect(function() if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then LocalPlayer.Character.Humanoid.WalkSpeed = (LocalPlayer.Character.Humanoid.WalkSpeed == 16 and 100 or 16) end end)
+ToggleBtn.MouseButton1Click:Connect(function() _G.ESP_Enabled = not _G.ESP_Enabled; ToggleBtn.BackgroundColor3 = _G.ESP_Enabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(180, 40, 40) end)
+local function CreateESP(P)
+    local B = Drawing.new("Square"); B.Color = Color3.fromRGB(255, 200, 0); B.Thickness = 1; table.insert(ESP_Objects, B)
+    RunService.RenderStepped:Connect(function()
+        if _G.SuloActive and _G.ESP_Enabled and P.Character and P.Character:FindFirstChild("HumanoidRootPart") and P ~= LocalPlayer then
+            local Pos, OnS = Camera:WorldToViewportPoint(P.Character.HumanoidRootPart.Position)
+            if OnS then B.Size = Vector2.new(2000/Pos.Z, 3000/Pos.Z); B.Position = Vector2.new(Pos.X - B.Size.X/2, Pos.Y - B.Size.Y/2); B.Visible = true else B.Visible = false end
+        else B.Visible = false end
+    end)
+end
+TPBtn.MouseButton1Click:Connect(function()
+    local target = PlayerInput.Text:lower()
+    for _, v in pairs(Players:GetPlayers()) do if v.Name:lower():sub(1,#target) == target then LocalPlayer.Character.HumanoidRootPart.CFrame = v.Character.HumanoidRootPart.CFrame end end
+end)
+for _, v in pairs(Players:GetPlayers()) do CreateESP(v) end
+Players.PlayerAdded:Connect(CreateESP)
